@@ -1,0 +1,96 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Monk-IV
+
+//@version=6
+indicator('RSV % Change')
+
+// Request Symbol Data
+DXY = request.security('DX1!', '1D', close)
+IR = request.security('ZN1!', '1D', close)
+GOLD = request.security('GC1!', '1D', close)
+BTC = request.security('BTC1!', '1D', close)
+
+// Define Length
+Length = input.string(defval = '10', title = 'Length', options = ['10', '13', '30'])
+// Define NumericLength
+NumericLength = 10
+
+// Length Conditions
+if Length == '30'
+    NumericLength := 30
+    NumericLength
+else if Length == '13'
+    NumericLength := 13
+    NumericLength
+else
+    NumericLength := 10
+    NumericLength
+
+// Calculate Percentage Change 
+pct_change_main = (close - close[NumericLength]) / close[NumericLength] * 100
+DXY_pct_change = (DXY - DXY[NumericLength]) / DXY[NumericLength] * 100
+IR_pct_change = (IR - IR[NumericLength]) / IR[NumericLength] * 100
+GOLD_pct_change = (GOLD - GOLD[NumericLength]) / GOLD[NumericLength] * 100
+BTC_pct_change = (BTC - BTC[NumericLength]) / BTC[NumericLength] * 100
+
+// Canculate Spreads
+DXY_Spread = pct_change_main - DXY_pct_change
+IR_Spread = pct_change_main - IR_pct_change
+GOLD_Spread = pct_change_main - GOLD_pct_change
+BTC_Spread = pct_change_main - BTC_pct_change
+
+// Define Lookback
+Lookback = input.int(defval = 100, title = ' lookback ')
+
+// Calculate Highest / Lowest Spreads
+HighestSpread = ta.highest(DXY_Spread, Lookback)
+LowestSpread = ta.lowest(DXY_Spread, Lookback)
+HighestSpread_IR = ta.highest(IR_Spread, Lookback)
+LowestSpread_IR = ta.lowest(IR_Spread, Lookback)
+HighestGOLD = ta.highest(GOLD_Spread, Lookback)
+LowestGOLD = ta.lowest(GOLD_Spread, Lookback)
+HighestBTC = ta.highest(BTC_Spread, Lookback)
+LowestBTC = ta.lowest(BTC_Spread, Lookback)
+
+// Calculate RSV's
+RSV = (DXY_Spread - LowestSpread) / (HighestSpread - LowestSpread) * 100
+RSV_IR = (IR_Spread - LowestSpread_IR) / (HighestSpread_IR - LowestSpread_IR) * 100
+RSV_G = (GOLD_Spread - LowestGOLD) / (HighestGOLD - LowestGOLD) * 100
+RSV_B = (BTC_Spread - LowestBTC) / (HighestBTC - LowestBTC) * 100
+
+// RSV Standard Deviations
+RSV_std = (RSV - 50) / 50 * 100
+RSV_IR_std = (RSV_IR - 50) / 50 * 100
+RSV_G_std = (RSV_G - 50) / 50 * 100
+RSV_B_std = (RSV_B - 50) / 50 * 100
+
+// Select RSV
+showRSV = input(true, title = 'DXY')
+showRSV_IR = input(false, title = 'Bonds')
+showRSV_G = input(false, title = 'Gold')
+showBTC = input(false, title = 'BTC')
+
+// Plot RSV
+RSVplot_std = plot(showRSV ? RSV_std : na, 'DXY', color = color.purple, linewidth = 2, precision = 2)
+IRplot_std = plot(showRSV_IR ? RSV_IR_std : na, 'Bonds', color = color.blue, linewidth = 2, precision = 2)
+GOLDplot_std = plot(showRSV_G ? RSV_G_std : na, 'Gold', color = color.orange, linewidth = 2, precision = 2)
+BTCplot_std = plot(showBTC ? RSV_B_std : na, 'BTC', color = color.green, linewidth = 2, precision = 2)
+
+// Plot Lines
+Midline = hline(0, editable = true, linewidth = 1, color = color.rgb(179, 179, 179), title = 'Mid-line', linestyle = hline.style_solid)
+overvalued_level = input.float(75, title = 'Overvalued')
+undervalued_level = input.float(-75, title = 'Undervalued')
+Overvalued = hline(75, 'Overvalued', color = color.rgb(167, 51, 51), linewidth = 2, linestyle = hline.style_solid)
+Undervalued = hline(-75, 'Undervalued', color = color.rgb(17, 131, 32), linewidth = 2, linestyle = hline.style_solid)
+midLinePlot = plot(0, color = na, editable = false, display = display.none)
+
+// Fills
+fill(RSVplot_std, midLinePlot, undervalued_level, -100, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = ' DXY Undervalued Fill')
+fill(RSVplot_std, midLinePlot, 100, overvalued_level, top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = ' DXY Overvalued Fill')
+fill(IRplot_std, midLinePlot, undervalued_level, -100, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = ' Bonds Undervalued Fill')
+fill(IRplot_std, midLinePlot, 100, overvalued_level, top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = ' Bonds Overvalued Fill')
+fill(GOLDplot_std, midLinePlot, undervalued_level, -100, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = ' Gold Undervalued Fill')
+fill(GOLDplot_std, midLinePlot, 100, overvalued_level, top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = ' Gold Overvalued Fill')
+fill(BTCplot_std, midLinePlot, undervalued_level, -100, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = ' BTC Undervalued Fill')
+fill(BTCplot_std, midLinePlot, 100, overvalued_level, top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = ' BTC Overvalued Fill')
+//fill(Overvalued, Undervalued, #11111133, title="Background")
